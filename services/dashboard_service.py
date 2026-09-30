@@ -34,7 +34,7 @@ class DashboardService:
         # Calculer les statuts
         nombre_eleves_soldes = 0
         nombre_eleves_partiellement_payes = 0
-        nombre_eleves_non_soldes = 0
+        nombre_eleves_non_payes = 0
         
         for student in students:
             total_paye = self.payment_repo.get_total_by_student(student['id'])
@@ -45,10 +45,10 @@ class DashboardService:
             elif solde < student['montant_total']:
                 nombre_eleves_partiellement_payes += 1
             else:
-                nombre_eleves_non_soldes += 1
+                nombre_eleves_non_payes += 1
         
         # nombre_eleves_non_soldes inclut les non payés et partiellement payés
-        nombre_eleves_non_soldes = nombre_eleves_partiellement_payes + nombre_eleves_non_soldes
+        nombre_eleves_non_soldes = nombre_eleves_partiellement_payes + nombre_eleves_non_payes
         
         return {
             'nombre_total_eleves': nombre_total_eleves,
