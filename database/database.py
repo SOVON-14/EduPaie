@@ -1,3 +1,4 @@
+import contextlib
 import sqlite3
 import os
 from pathlib import Path
@@ -5,15 +6,37 @@ from pathlib import Path
 # Chemin vers la base de données
 DB_PATH = Path(__file__).parent.parent / "data" / "edupaie.db"
 
+@contextlib.contextmanager
 def get_connection():
-    """Crée et retourne une connexion à la base de données"""
+    """Ouvre une connexion SQLite avec commit/rollback et fermeture garanties.
+
+    Utilisation :
+        with get_connection() as conn:
+            conn.execute(...)
+
+    La connexion est commitée si le bloc réussit, annulée (rollback) en cas
+    d'exception, et TOUJOURS fermée à la sortie.
+
+    Correction IMP-05 de l'audit : l'ancienne version retournait une
+    connexion brute jamais fermée ; son cycle de références internes
+    (connexion <-> curseurs en cache) n'était rompu que par le garbage
+    collector, laissant le fichier .db verrouillé sous Windows et
+    produisant des ResourceWarning « unclosed database ».
+    """
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    # SQLite n'applique les clés étrangères que si le pragma est activé
-    # pour CHAQUE connexion (correction CRIT-01 de l'audit : le ON DELETE
-    # CASCADE de la table payments était inopérant sans cela).
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        # SQLite n'applique les clés étrangères que si le pragma est activé
+        # pour CHAQUE connexion (correction CRIT-01 de l'audit : le ON DELETE
+        # CASCADE de la table payments était inopérant sans cela).
+        conn.execute("PRAGMA foreign_keys = ON")
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def init_database():
     """Initialise la base de données avec le schéma"""

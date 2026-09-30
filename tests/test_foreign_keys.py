@@ -7,7 +7,6 @@ et que la purge des paiements orphelins fonctionne.
 Exécution : python -m unittest tests.test_foreign_keys -v
 """
 
-import gc
 import sqlite3
 import sys
 import tempfile
@@ -39,11 +38,10 @@ class ForeignKeyTestCase(unittest.TestCase):
         self.payment_service = PaymentService()
 
     def tearDown(self):
-        # Les connexions sqlite3 non fermées forment un cycle de références
-        # (bug IMP-05 de l'audit : connexions jamais fermées). Sous Windows,
-        # le fichier .db reste verrouillé tant que le GC n'a pas collecté
-        # ces cycles ; un collect() explicite simule la fermeture propre.
-        gc.collect()
+        # Depuis la correction IMP-05 (fermeture garantie des connexions),
+        # aucun gc.collect() n'est nécessaire : si une connexion fuit,
+        # le fichier .db reste verrouillé sous Windows et la suppression
+        # du dossier temporaire échoue -> le test échoue. C'est voulu.
         db.DB_PATH = self._old_db_path
         self._tmp.cleanup()
 
