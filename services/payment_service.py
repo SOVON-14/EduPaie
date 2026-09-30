@@ -75,8 +75,51 @@ class PaymentService:
         return self.payment_repo.get_by_id(payment_id)
     
     def get_student_payments(self, student_id: int) -> List[Dict[str, Any]]:
-        """Récupère tous les paiements d'un élève"""
-        return self.payment_repo.get_by_student(student_id)
+        """
+        Récupère tous les paiements d'un élève avec détails complets
+        
+        Args:
+            student_id: ID de l'élève
+            
+        Returns:
+            Liste des paiements avec informations de l'élève et solde (plus récent en premier)
+        """
+        from database.database import get_connection
+        
+        # Récupérer les paiements dans l'ordre chronologique (du plus ancien au plus récent)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM payments WHERE student_id = ? ORDER BY date ASC, id ASC",
+                (student_id,)
+            )
+            payments_chronological = [dict(row) for row in cursor.fetchall()]
+        
+        student = self.student_repo.get_by_id(student_id)
+        
+        if not student:
+            return payments_chronological
+        
+        # Enrichir chaque paiement avec le solde après ce paiement
+        enriched_payments = []
+        cumul_paye = 0
+        
+        for payment in payments_chronological:
+            cumul_paye += payment['montant']
+            solde_apres = student['montant_total'] - cumul_paye
+            
+            enriched_payment = {
+                **payment,
+                'eleve_nom': student['nom'],
+                'eleve_prenom': student['prenom'],
+                'eleve_classe': student['classe'],
+                'solde_apres_paiement': solde_apres,
+                'statut': self._get_payment_status(solde_apres, student['montant_total'])
+            }
+            enriched_payments.append(enriched_payment)
+        
+        # Retourner en ordre inverse (plus récent en premier)
+        return list(reversed(enriched_payments))
     
     def get_all_payments(self) -> List[Dict[str, Any]]:
         """Récupère tous les paiements"""
