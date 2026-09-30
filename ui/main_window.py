@@ -28,6 +28,9 @@ class MainWindow(QMainWindow):
         # Initialiser l'interface
         self.init_ui()
         self.load_dashboard_stats()
+        # Charger la liste des élèves au démarrage (correction IMP-01 de l'audit :
+        # la table des élèves restait vide à l'ouverture de l'application)
+        self.load_students()
     
     def init_ui(self):
         """Initialise l'interface utilisateur"""
