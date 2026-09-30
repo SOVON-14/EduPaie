@@ -7,6 +7,7 @@ from services.student_service import StudentService
 from services.payment_service import PaymentService
 from services.dashboard_service import DashboardService
 from services.receipt_service import ReceiptService
+from config import format_montant
 from ui.student_dialog import StudentDialog
 from ui.payment_dialog import PaymentDialog
 from ui.student_detail import StudentDetailDialog
@@ -175,8 +176,8 @@ class MainWindow(QMainWindow):
         self.stats_table.setRowCount(6)
         stats_data = [
             ("Nombre total d'élèves", str(stats['nombre_total_eleves'])),
-            ("Total encaissé", f"{stats['total_encaisse']:.2f} EUR"),
-            ("Total restant dû", f"{stats['total_restant_du']:.2f} EUR"),
+            ("Total encaissé", format_montant(stats['total_encaisse'])),
+            ("Total restant dû", format_montant(stats['total_restant_du'])),
             ("Élèves soldés", str(stats['nombre_eleves_soldes'])),
             ("Élèves partiellement payés", str(stats['nombre_eleves_partiellement_payes'])),
             ("Élèves non payés", str(stats['nombre_eleves_non_payes']))
@@ -193,8 +194,8 @@ class MainWindow(QMainWindow):
         for row, stat in enumerate(class_stats):
             self.class_table.setItem(row, 0, QTableWidgetItem(stat['classe']))
             self.class_table.setItem(row, 1, QTableWidgetItem(str(stat['nombre_eleves'])))
-            self.class_table.setItem(row, 2, QTableWidgetItem(f"{stat['total_encaisse']:.2f} EUR"))
-            self.class_table.setItem(row, 3, QTableWidgetItem(f"{stat['total_restant']:.2f} EUR"))
+            self.class_table.setItem(row, 2, QTableWidgetItem(format_montant(stat['total_encaisse'])))
+            self.class_table.setItem(row, 3, QTableWidgetItem(format_montant(stat['total_restant'])))
             self.class_table.setItem(row, 4, QTableWidgetItem(str(stat['nombre_soldes'])))
     
     def load_students(self):
@@ -209,7 +210,7 @@ class MainWindow(QMainWindow):
             self.students_table.setItem(row, 2, QTableWidgetItem(student['prenom']))
             self.students_table.setItem(row, 3, QTableWidgetItem(student['classe']))
             self.students_table.setItem(row, 4, QTableWidgetItem(student['annee_scolaire']))
-            self.students_table.setItem(row, 5, QTableWidgetItem(f"{student['montant_total']:.2f} EUR"))
+            self.students_table.setItem(row, 5, QTableWidgetItem(format_montant(student['montant_total'])))
             self.students_table.setItem(row, 6, QTableWidgetItem(student['statut']))
         
         # Mettre à jour le filtre de classe
@@ -257,7 +258,7 @@ class MainWindow(QMainWindow):
             self.students_table.setItem(row, 2, QTableWidgetItem(student['prenom']))
             self.students_table.setItem(row, 3, QTableWidgetItem(student['classe']))
             self.students_table.setItem(row, 4, QTableWidgetItem(student['annee_scolaire']))
-            self.students_table.setItem(row, 5, QTableWidgetItem(f"{student['montant_total']:.2f} EUR"))
+            self.students_table.setItem(row, 5, QTableWidgetItem(format_montant(student['montant_total'])))
             self.students_table.setItem(row, 6, QTableWidgetItem(student['statut']))
     
     def add_student(self):

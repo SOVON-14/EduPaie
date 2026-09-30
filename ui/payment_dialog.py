@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                                      QDoubleSpinBox, QComboBox, QPushButton, QFormLayout)
 from PySide6.QtCore import Qt
+from config import MONTANT_MAX, FORMAT_MONTANT_SUFFIX, format_montant
 
 class PaymentDialog(QDialog):
     """Boîte de dialogue pour enregistrer un paiement"""
@@ -35,9 +36,10 @@ class PaymentDialog(QDialog):
         form_layout = QFormLayout()
         
         self.montant_input = QDoubleSpinBox()
-        self.montant_input.setRange(0.01, 100000)
-        self.montant_input.setDecimals(2)
-        self.montant_input.setSuffix(" EUR")
+        # Plafond aligné sur le montant total possible (corrige IMP-03)
+        self.montant_input.setRange(0.01, MONTANT_MAX)
+        self.montant_input.setDecimals(0)
+        self.montant_input.setSuffix(FORMAT_MONTANT_SUFFIX)
         self.montant_input.setFocus()
         form_layout.addRow("Montant *:", self.montant_input)
         
@@ -80,7 +82,7 @@ class PaymentDialog(QDialog):
                 f"Élève: {student['nom']} {student['prenom']} - {student['classe']}"
             )
             self.balance_label.setText(
-                f"Solde restant: {student['solde']:.2f} EUR / {student['montant_total']:.2f} EUR"
+                f"Solde restant: {format_montant(student['solde'])} / {format_montant(student['montant_total'])}"
             )
             self.max_amount = student['solde']
         else:
@@ -95,7 +97,7 @@ class PaymentDialog(QDialog):
         
         if montant > self.max_amount:
             self.warning_label.setText(
-                f"Attention: Le montant ({montant:.2f} EUR) dépasse le solde restant ({self.max_amount:.2f} EUR)"
+                f"Attention: Le montant ({format_montant(montant)}) dépasse le solde restant ({format_montant(self.max_amount)})"
             )
             self.ok_btn.setEnabled(False)
         else:
@@ -117,7 +119,7 @@ class PaymentDialog(QDialog):
             QMessageBox.warning(
                 self, 
                 "Erreur", 
-                f"Le montant ({montant:.2f} EUR) dépasse le solde restant ({self.max_amount:.2f} EUR)"
+                f"Le montant ({format_montant(montant)}) dépasse le solde restant ({format_montant(self.max_amount)})"
             )
             return
         

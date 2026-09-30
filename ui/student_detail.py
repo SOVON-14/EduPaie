@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from ui.payment_dialog import PaymentDialog
+from config import format_montant
 
 class StudentDetailDialog(QDialog):
     """Boîte de dialogue pour afficher les détails d'un élève"""
@@ -102,9 +103,9 @@ class StudentDetailDialog(QDialog):
         
         # Afficher les statistiques de paiement
         self.payment_stats_label.setText(
-            f"Total dû: {student['montant_total']:.2f} EUR | "
-            f"Total payé: {student['total_paye']:.2f} EUR | "
-            f"Solde: {student['solde']:.2f} EUR | "
+            f"Total dû: {format_montant(student['montant_total'])} | "
+            f"Total payé: {format_montant(student['total_paye'])} | "
+            f"Solde: {format_montant(student['solde'])} | "
             f"Statut: {student['statut']}"
         )
         
@@ -116,9 +117,9 @@ class StudentDetailDialog(QDialog):
         for row, payment in enumerate(payments):
             self.payments_table.setItem(row, 0, QTableWidgetItem(payment['numero_recu']))
             self.payments_table.setItem(row, 1, QTableWidgetItem(payment['date']))
-            self.payments_table.setItem(row, 2, QTableWidgetItem(f"{payment['montant']:.2f} EUR"))
+            self.payments_table.setItem(row, 2, QTableWidgetItem(format_montant(payment['montant'])))
             self.payments_table.setItem(row, 3, QTableWidgetItem(payment['mode_paiement']))
-            self.payments_table.setItem(row, 4, QTableWidgetItem(f"{payment['solde_apres_paiement']:.2f} EUR"))
+            self.payments_table.setItem(row, 4, QTableWidgetItem(format_montant(payment['solde_apres_paiement'])))
             self.payments_table.setItem(row, 5, QTableWidgetItem(payment['statut']))
     
     def add_payment(self):
@@ -144,11 +145,11 @@ class StudentDetailDialog(QDialog):
                 receipt_info = (
                     f"Numéro: {receipt['numero_recu']}\n"
                     f"Date: {receipt['date_paiement']}\n"
-                    f"Montant: {receipt['montant_paye']:.2f} EUR\n"
+                    f"Montant: {format_montant(receipt['montant_paye'])}\n"
                     f"Mode: {receipt['mode_paiement']}\n"
                     f"Élève: {receipt['eleve']['nom']} {receipt['eleve']['prenom']}\n"
                     f"Classe: {receipt['eleve']['classe']}\n"
-                    f"Solde après: {receipt['solde_apres_paiement']:.2f} EUR\n"
+                    f"Solde après: {format_montant(receipt['solde_apres_paiement'])}\n"
                     f"Statut: {receipt['statut']}"
                 )
                 QMessageBox.information(self, "Reçu", receipt_info)

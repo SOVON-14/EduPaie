@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                                      QLineEdit, QDoubleSpinBox, QPushButton, QFormLayout, QComboBox)
 from PySide6.QtCore import Qt
+from config import MONTANT_MAX, FORMAT_MONTANT_SUFFIX
 import re
 
 class StudentDialog(QDialog):
@@ -50,9 +51,9 @@ class StudentDialog(QDialog):
         form_layout.addRow("Année scolaire *:", self.annee_input)
         
         self.montant_input = QDoubleSpinBox()
-        self.montant_input.setRange(0, 1000000)
+        self.montant_input.setRange(0, MONTANT_MAX)
         self.montant_input.setDecimals(0)
-        self.montant_input.setSuffix(" FCFA")
+        self.montant_input.setSuffix(FORMAT_MONTANT_SUFFIX)
         form_layout.addRow("Montant total *:", self.montant_input)
         
         layout.addLayout(form_layout)

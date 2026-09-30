@@ -12,6 +12,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from config import format_montant
 
 class ReceiptService:
     """Service pour la gestion des reçus de paiement et génération PDF"""
@@ -197,10 +198,10 @@ class ReceiptService:
         story.append(Paragraph("DÉTAILS DU PAIEMENT", header_style))
         
         payment_data = [
-            ['Montant payé :', f"{receipt['montant_paye']:.2f} EUR"],
+            ['Montant payé :', format_montant(receipt['montant_paye'])],
             ['Mode de paiement :', self._format_payment_mode(receipt['mode_paiement'])],
-            ['Montant total dû :', f"{receipt['montant_total']:.2f} EUR"],
-            ['Solde restant :', f"{receipt['solde_apres_paiement']:.2f} EUR"],
+            ['Montant total dû :', format_montant(receipt['montant_total'])],
+            ['Solde restant :', format_montant(receipt['solde_apres_paiement'])],
             ['Statut :', receipt['statut']]
         ]
         
