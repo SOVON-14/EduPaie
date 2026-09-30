@@ -1,6 +1,7 @@
 from repositories.student_repository import StudentRepository
 from repositories.payment_repository import PaymentRepository
 from typing import List, Optional, Dict, Any
+import re
 
 class StudentService:
     """Service pour la gestion des élèves avec logique métier"""
@@ -13,6 +14,11 @@ class StudentService:
         """Crée un nouvel élève"""
         if montant_total <= 0:
             raise ValueError("Le montant total doit être positif")
+        
+        # Validation du format de l'année scolaire
+        if not re.match(r'^\d{4}-\d{4}$', annee_scolaire):
+            raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
+        
         return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
