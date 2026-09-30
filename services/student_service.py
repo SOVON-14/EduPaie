@@ -1,0 +1,96 @@
+from repositories.student_repository import StudentRepository
+from repositories.payment_repository import PaymentRepository
+from typing import List, Optional, Dict, Any
+
+class StudentService:
+    """Service pour la gestion des élèves avec logique métier"""
+    
+    def __init__(self):
+        self.student_repo = StudentRepository()
+        self.payment_repo = PaymentRepository()
+    
+    def create_student(self, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> int:
+        """Crée un nouvel élève"""
+        if montant_total <= 0:
+            raise ValueError("Le montant total doit être positif")
+        return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+    
+    def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
+        """Récupère un élève avec ses informations de paiement"""
+        student = self.student_repo.get_by_id(student_id)
+        if student:
+            payments = self.payment_repo.get_by_student(student_id)
+            total_paid = sum(p['montant'] for p in payments)
+            balance = student['montant_total'] - total_paid
+            
+            student['total_paye'] = total_paid
+            student['solde'] = balance
+            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+            student['paiements'] = payments
+        
+        return student
+    
+    def get_all_students(self) -> List[Dict[str, Any]]:
+        """Récupère tous les élèves avec leur statut de paiement"""
+        students = self.student_repo.get_all()
+        for student in students:
+            payments = self.payment_repo.get_by_student(student['id'])
+            total_paid = sum(p['montant'] for p in payments)
+            balance = student['montant_total'] - total_paid
+            
+            student['total_paye'] = total_paid
+            student['solde'] = balance
+            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+        
+        return students
+    
+    def get_students_by_class(self, classe: str) -> List[Dict[str, Any]]:
+        """Récupère tous les élèves d'une classe avec leur statut de paiement"""
+        students = self.student_repo.get_by_classe(classe)
+        for student in students:
+            payments = self.payment_repo.get_by_student(student['id'])
+            total_paid = sum(p['montant'] for p in payments)
+            balance = student['montant_total'] - total_paid
+            
+            student['total_paye'] = total_paid
+            student['solde'] = balance
+            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+        
+        return students
+    
+    def update_student(self, student_id: int, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> bool:
+        """Met à jour un élève"""
+        if montant_total <= 0:
+            raise ValueError("Le montant total doit être positif")
+        return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
+    
+    def delete_student(self, student_id: int) -> bool:
+        """Supprime un élève"""
+        return self.student_repo.delete(student_id)
+    
+    def search_students(self, query: str) -> List[Dict[str, Any]]:
+        """Recherche des élèves par nom ou prénom avec leur statut de paiement"""
+        students = self.student_repo.search(query)
+        for student in students:
+            payments = self.payment_repo.get_by_student(student['id'])
+            total_paid = sum(p['montant'] for p in payments)
+            balance = student['montant_total'] - total_paid
+            
+            student['total_paye'] = total_paid
+            student['solde'] = balance
+            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+        
+        return students
+    
+    def get_classes(self) -> List[str]:
+        """Récupère la liste de toutes les classes"""
+        return self.student_repo.get_classes()
+    
+    def _get_payment_status(self, balance: float, total: float) -> str:
+        """Détermine le statut de paiement"""
+        if balance <= 0:
+            return "Soldé"
+        elif balance < total:
+            return "Partiellement payé"
+        else:
+            return "Non payé"
