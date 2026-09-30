@@ -83,6 +83,11 @@ class PaymentDialog(QDialog):
                 f"Solde restant: {student['solde']:.2f} EUR / {student['montant_total']:.2f} EUR"
             )
             self.max_amount = student['solde']
+        else:
+            # Élève introuvable : fermer le dialogue avec un message d'erreur
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Erreur", "Élève introuvable. Il a peut-être été supprimé.")
+            self.reject()
     
     def validate_amount(self):
         """Valide le montant saisi"""
