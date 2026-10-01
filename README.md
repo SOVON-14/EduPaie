@@ -72,6 +72,16 @@ cd "C:\Users\USER\Desktop\EduPaie"
 python -m unittest discover -s tests -v
 ```
 
+## Jeu de données de démonstration
+
+Pour créer une base SQLite séparée avec 18 élèves et des paiements de statuts variés :
+
+```powershell
+.\.venv\Scripts\python.exe data\seed.py --database data\edupaie_test.db
+```
+
+La base `data/edupaie.db` de l'application n'est pas modifiée. Le script ne remplit pas une base cible qui contient déjà des élèves.
+
 ## Build / diffusion locale
 
 Pour produire une version exécutable du projet localement :
