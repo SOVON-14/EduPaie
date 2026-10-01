@@ -1,9 +1,13 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.pyc
 
-# Base de donnees locale
+# Base de données locale
 *.db
+data/*.db
 
 # Environnement virtuel
 .venv/
@@ -13,7 +17,14 @@ env/
 # Variables d'environnement
 .env
 
+# Build artifacts
+build/
+dist/
+*.spec
+
+# PDFs générés
+receipts/*.pdf
+
 # IDE
 .vscode/
 .idea/
-receipts/
