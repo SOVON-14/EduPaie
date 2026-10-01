@@ -27,6 +27,9 @@ class PaymentService:
             ValueError: Si le montant est invalide ou dépasse le solde restant
         """
         # Validation du montant
+        # Correction IMP-04 de l'audit : montants entiers (le FCFA n'a pas
+        # de sous-unité), stockés comme tels en base.
+        montant = int(round(montant))
         if montant <= 0:
             raise ValueError("Le montant doit être positif")
         

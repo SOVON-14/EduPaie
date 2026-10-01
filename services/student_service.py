@@ -3,6 +3,7 @@ from repositories.payment_repository import PaymentRepository
 from config import format_montant
 from typing import List, Optional, Dict, Any
 import re
+import sqlite3
 
 class StudentService:
     """Service pour la gestion des élèves avec logique métier"""
@@ -11,13 +12,16 @@ class StudentService:
         self.student_repo = StudentRepository()
         self.payment_repo = PaymentRepository()
     
-    def _valider_donnees_eleve(self, annee_scolaire: str, montant_total: float) -> None:
+    def _valider_donnees_eleve(self, annee_scolaire: str, montant_total: float) -> int:
         """Valide les données communes à la création et à la modification.
 
         Correction IMP-09 de l'audit : la validation (notamment du format de
         l'année scolaire) n'était appliquée qu'à la création, pas à la
         modification.
+        Correction IMP-04 de l'audit : les montants sont convertis en entiers
+        (le FCFA n'a pas de sous-unité) et stockés comme tels en base.
         """
+        montant_total = int(round(montant_total))
         if montant_total <= 0:
             raise ValueError("Le montant total doit être positif")
 
@@ -25,11 +29,19 @@ class StudentService:
         if not re.match(r'^\d{4}-\d{4}$', annee_scolaire):
             raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
 
+        return montant_total
+
     def create_student(self, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> int:
         """Crée un nouvel élève"""
-        self._valider_donnees_eleve(annee_scolaire, montant_total)
+        montant_total = self._valider_donnees_eleve(annee_scolaire, montant_total)
 
-        return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+        try:
+            return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+        except sqlite3.IntegrityError:
+            # Correction DB-03 de l'audit : doublons d'élèves interdits en base
+            raise ValueError(
+                "Un élève identique existe déjà (même nom, prénom, classe et année scolaire)."
+            )
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
         """Récupère un élève avec ses informations de paiement"""
@@ -76,7 +88,7 @@ class StudentService:
     
     def update_student(self, student_id: int, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> bool:
         """Met à jour un élève"""
-        self._valider_donnees_eleve(annee_scolaire, montant_total)
+        montant_total = self._valider_donnees_eleve(annee_scolaire, montant_total)
 
         # Correction IMP-10 de l'audit : refuser un nouveau montant total
         # inférieur au montant déjà payé (le solde deviendrait négatif).
@@ -88,7 +100,14 @@ class StudentService:
                 "le solde deviendrait négatif."
             )
 
-        return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
+        try:
+            return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
+        except sqlite3.IntegrityError:
+            # Correction DB-03 de l'audit : doublons d'élèves interdits en base
+            raise ValueError(
+                "Impossible de modifier : un autre élève avec le même nom, "
+                "prénom, classe et année scolaire existe déjà."
+            )
     
     def delete_student(self, student_id: int) -> bool:
         """Supprime un élève"""
