@@ -79,6 +79,46 @@ def seed(database_path=None):
         database.DB_PATH = previous_db_path
 
 
+def merge_seed(database_path=None):
+    """Ajoute les élèves de démonstration absents sans modifier les existants."""
+    previous_db_path = database.DB_PATH
+    if database_path is not None:
+        database.DB_PATH = Path(database_path)
+
+    try:
+        ensure_database_exists()
+        student_service = StudentService()
+        payment_service = PaymentService()
+        added_count = 0
+
+        for nom, prenom, classe, annee, montant_total, paiements in ELEVES_DEMO:
+            with get_connection() as conn:
+                existing = conn.execute(
+                    """
+                    SELECT id FROM students
+                    WHERE nom = ? AND prenom = ? AND classe = ? AND annee_scolaire = ?
+                    """,
+                    (nom, prenom, classe, annee),
+                ).fetchone()
+            if existing:
+                continue
+
+            student_id = student_service.create_student(
+                nom, prenom, classe, annee, float(montant_total)
+            )
+            for montant, mode in paiements:
+                payment_service.create_payment(student_id, float(montant), mode)
+            added_count += 1
+
+        print(
+            f"Fusion terminée : {added_count} élève(s) ajouté(s); "
+            "les dossiers déjà présents ont été conservés."
+        )
+        return added_count
+    finally:
+        database.DB_PATH = previous_db_path
+
+
 def _seed_empty_database():
     ensure_database_exists()
 
@@ -118,4 +158,13 @@ if __name__ == "__main__":
         type=Path,
         help="Chemin de la base SQLite à remplir (par défaut, base de l'application).",
     )
-    seed(parser.parse_args().database)
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Ajouter les élèves manquants sans modifier les dossiers existants.",
+    )
+    args = parser.parse_args()
+    if args.merge:
+        merge_seed(args.database)
+    else:
+        seed(args.database)

@@ -10,10 +10,21 @@ if (-not (Test-Path $pythonExe)) {
 }
 
 Write-Host "Construction de la version locale de EduPaie..."
-& $pythonExe -m PyInstaller --noconfirm --onedir --windowed `
-    --name "EduPaie" `
-    --add-data "database;database" `
-    --add-data "resources;resources" `
-    main.py
+$pyinstallerArgs = @(
+    "--noconfirm",
+    "--onedir",
+    "--windowed",
+    "--name", "EduPaie",
+    "--add-data", "database;database",
+    "--add-data", "resources;resources"
+)
+
+if (Test-Path "data\edupaie.db") {
+    $pyinstallerArgs += @("--add-data", "data\edupaie.db;data")
+} else {
+    Write-Warning "data/edupaie.db absent : l'application démarrera avec une base vide."
+}
+
+& $pythonExe -m PyInstaller @pyinstallerArgs main.py
 
 Write-Host "Build terminé. Le dossier dist/EduPaie contient l'application."

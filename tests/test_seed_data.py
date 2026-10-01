@@ -8,7 +8,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import database.database as db
-from data.seed import seed
+from data.seed import merge_seed, seed
+from services.payment_service import PaymentService
 from services.student_service import StudentService
 
 
@@ -72,6 +73,36 @@ class SeedDataTestCase(unittest.TestCase):
                 "SELECT COUNT(*) FROM students"
             ).fetchone()[0]
         self.assertGreaterEqual(student_count, 15)
+
+    def test_merge_adds_only_missing_students_and_is_idempotent(self):
+        db.ensure_database_exists()
+        student_service = StudentService()
+        payment_service = PaymentService()
+        existing_student_id = student_service.create_student(
+            "DIALLO", "Aminata", "6ème A", "2025-2026", 250_000
+        )
+        payment_service.create_payment(
+            existing_student_id, 50_000, "especes"
+        )
+
+        self.assertEqual(merge_seed(), 17)
+        self.assertEqual(merge_seed(), 0)
+
+        with db.get_connection() as conn:
+            student_count = conn.execute(
+                "SELECT COUNT(*) FROM students"
+            ).fetchone()[0]
+            payment_count = conn.execute(
+                "SELECT COUNT(*) FROM payments"
+            ).fetchone()[0]
+            existing_student_payments = conn.execute(
+                "SELECT SUM(montant) FROM payments WHERE student_id = ?",
+                (existing_student_id,),
+            ).fetchone()[0]
+
+        self.assertEqual(student_count, 18)
+        self.assertEqual(payment_count, 19)
+        self.assertEqual(existing_student_payments, 50_000)
 
 
 if __name__ == "__main__":

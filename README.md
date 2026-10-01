@@ -74,13 +74,13 @@ python -m unittest discover -s tests -v
 
 ## Jeu de données de démonstration
 
-Pour créer une base SQLite séparée avec 18 élèves et des paiements de statuts variés :
+Pour ajouter les élèves de démonstration à la base utilisée par l'application sans remplacer les dossiers existants :
 
 ```powershell
-.\.venv\Scripts\python.exe data\seed.py --database data\edupaie_test.db
+.\.venv\Scripts\python.exe data\seed.py --merge --database data\edupaie.db
 ```
 
-La base `data/edupaie.db` de l'application n'est pas modifiée. Le script ne remplit pas une base cible qui contient déjà des élèves.
+La fusion ignore les élèves déjà présents et leurs paiements. Le script de build inclut `data/edupaie.db` dans la distribution lorsqu'elle existe, afin que l'application partagée démarre avec cette base.
 
 ## Build / diffusion locale
 
