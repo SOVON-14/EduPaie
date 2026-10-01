@@ -17,8 +17,9 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("EduPaie - Gestion des frais de scolarité")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle("EduPaie • Gestion des frais de scolarité")
+        self.setMinimumSize(1100, 700)
+        self.resize(1200, 800)
         
         # Services
         self.student_service = StudentService()
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         self.stats_table.setHorizontalHeaderLabels(["Métrique", "Valeur"])
         self.stats_table.horizontalHeader().setStretchLastSection(True)
         self.stats_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.stats_table.setAlternatingRowColors(True)
         self.stats_table.setMaximumHeight(200)
         layout.addWidget(self.stats_table)
         
@@ -101,6 +103,7 @@ class MainWindow(QMainWindow):
         self.class_table.setHorizontalHeaderLabels(["Classe", "Élèves", "Encaissé", "Restant", "Soldés"])
         self.class_table.horizontalHeader().setStretchLastSection(True)
         self.class_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.class_table.setAlternatingRowColors(True)
         layout.addWidget(self.class_table)
         
         return tab
@@ -144,6 +147,8 @@ class MainWindow(QMainWindow):
         ])
         self.students_table.horizontalHeader().setStretchLastSection(True)
         self.students_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.students_table.setAlternatingRowColors(True)
+        self.students_table.verticalHeader().setVisible(False)
         # Correction IMP-02 de l'audit : les cellules ne doivent pas être
         # éditables (édition sans effet sur la base, source de confusion).
         self.students_table.setEditTriggers(QTableWidget.NoEditTriggers)

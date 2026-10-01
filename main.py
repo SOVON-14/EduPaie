@@ -1,23 +1,50 @@
+import logging
 import sys
-from PySide6.QtWidgets import QApplication
+
+from PySide6.QtWidgets import QApplication, QMessageBox
+
 from database.database import ensure_database_exists
 from ui.main_window import MainWindow
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
+
+
 def main():
-    """Point d'entrée de l'application"""
-    # S'assurer que la base de données existe
-    ensure_database_exists()
-    
-    # Créer l'application Qt
-    app = QApplication(sys.argv)
-    app.setStyle('Fusion')  # Style moderne
-    
-    # Créer et afficher la fenêtre principale
-    window = MainWindow()
-    window.show()
-    
-    # Exécuter l'application
-    sys.exit(app.exec())
+    """Point d'entrée de l'application."""
+    try:
+        # S'assurer que la base de données existe
+        ensure_database_exists()
+
+        # Créer l'application Qt
+        app = QApplication(sys.argv)
+        app.setApplicationName("EduPaie")
+        app.setApplicationDisplayName("EduPaie")
+        app.setStyle('Fusion')
+
+        # Créer et afficher la fenêtre principale
+        window = MainWindow()
+        window.show()
+
+        logger.info("Démarrage de l'application EduPaie réussi.")
+        return app.exec()
+    except Exception as exc:
+        logger.exception("Erreur critique au démarrage de l'application")
+
+        # Feedback convivial pour l'utilisateur final
+        app = QApplication.instance() or QApplication(sys.argv)
+        QMessageBox.critical(
+            None,
+            "EduPaie - Erreur",
+            "Une erreur critique empêche le démarrage de l'application.\n\n"
+            f"Détail technique : {exc}",
+        )
+        return 1
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

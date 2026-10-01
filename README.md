@@ -72,6 +72,17 @@ cd "C:\Users\USER\Desktop\EduPaie"
 python -m unittest discover -s tests -v
 ```
 
+## Build / diffusion locale
+
+Pour produire une version exécutable du projet localement :
+
+```powershell
+cd "C:\Users\USER\Desktop\EduPaie"
+./scripts/build_app.ps1
+```
+
+Le script crée un dossier `dist/EduPaie` avec une version de l’application prête à lancer.
+
 ## Structure du projet
 
 - `main.py` : point d'entrée

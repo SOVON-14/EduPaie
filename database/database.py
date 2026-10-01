@@ -148,7 +148,8 @@ def _migrate_v1(conn):
     conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 def ensure_database_exists():
-    """Vérifie si la base de données existe, sinon la crée"""
+    """Vérifie si la base de données existe, sinon la crée."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not DB_PATH.exists():
         init_database()
     # Applique les migrations de schéma (montants entiers, contraintes SQL)
