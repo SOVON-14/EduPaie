@@ -33,3 +33,16 @@ def format_montant(valeur: float) -> str:
     else:
         texte = f"{valeur:,.{DECIMALES}f}".replace(",", " ")
     return f"{texte} {DEVISE}"
+
+
+def calculate_payment_status(balance: float, total: float) -> str:
+    """Calcule le statut de paiement de manière centralisée.
+
+    La logique est utilisée dans plusieurs services pour garantir une
+    cohérence totale entre les écrans, le tableau de bord et les reçus.
+    """
+    if balance <= 0:
+        return "Soldé"
+    if balance < total:
+        return "Partiellement payé"
+    return "Non payé"

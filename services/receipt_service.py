@@ -12,7 +12,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from config import format_montant
+from config import format_montant, calculate_payment_status
 
 class ReceiptService:
     """Service pour la gestion des reçus de paiement et génération PDF"""
@@ -72,7 +72,7 @@ class ReceiptService:
             },
             'montant_total': student['montant_total'],
             'solde_apres_paiement': solde_apres,
-            'statut': self._get_payment_status(solde_apres, student['montant_total'])
+            'statut': calculate_payment_status(solde_apres, student['montant_total'])
         }
     
     def get_student_receipts(self, student_id: int) -> list[Dict[str, Any]]:
@@ -279,13 +279,8 @@ class ReceiptService:
             return cursor.fetchone()[0]
     
     def _get_payment_status(self, balance: float, total: float) -> str:
-        """Détermine le statut de paiement"""
-        if balance <= 0:
-            return "Soldé"
-        elif balance < total:
-            return "Partiellement payé"
-        else:
-            return "Non payé"
+        """Détermine le statut de paiement."""
+        return calculate_payment_status(balance, total)
     
     def _format_payment_mode(self, mode: str) -> str:
         """Formate le mode de paiement pour l'affichage"""

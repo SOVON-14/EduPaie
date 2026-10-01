@@ -1,9 +1,12 @@
 from repositories.student_repository import StudentRepository
 from repositories.payment_repository import PaymentRepository
-from config import format_montant
+from config import format_montant, calculate_payment_status
 from typing import List, Optional, Dict, Any
+import logging
 import re
 import sqlite3
+
+logger = logging.getLogger(__name__)
 
 class StudentService:
     """Service pour la gestion des élèves avec logique métier"""
@@ -38,6 +41,11 @@ class StudentService:
         try:
             return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
         except sqlite3.IntegrityError:
+            logger.warning(
+                "Tentative de création d'un élève dupliqué : %s %s / %s / %s",
+                nom, prenom, classe, annee_scolaire,
+                exc_info=True,
+            )
             # Correction DB-03 de l'audit : doublons d'élèves interdits en base
             raise ValueError(
                 "Un élève identique existe déjà (même nom, prénom, classe et année scolaire)."
@@ -53,7 +61,7 @@ class StudentService:
             
             student['total_paye'] = total_paid
             student['solde'] = balance
-            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+            student['statut'] = calculate_payment_status(balance, student['montant_total'])
             student['paiements'] = payments
         
         return student
@@ -68,7 +76,7 @@ class StudentService:
             
             student['total_paye'] = total_paid
             student['solde'] = balance
-            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+            student['statut'] = calculate_payment_status(balance, student['montant_total'])
         
         return students
     
@@ -82,7 +90,7 @@ class StudentService:
             
             student['total_paye'] = total_paid
             student['solde'] = balance
-            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+            student['statut'] = calculate_payment_status(balance, student['montant_total'])
         
         return students
     
@@ -103,6 +111,11 @@ class StudentService:
         try:
             return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
         except sqlite3.IntegrityError:
+            logger.warning(
+                "Tentative de modification d'un élève en doublon : %s %s / %s / %s",
+                nom, prenom, classe, annee_scolaire,
+                exc_info=True,
+            )
             # Correction DB-03 de l'audit : doublons d'élèves interdits en base
             raise ValueError(
                 "Impossible de modifier : un autre élève avec le même nom, "
@@ -123,7 +136,7 @@ class StudentService:
             
             student['total_paye'] = total_paid
             student['solde'] = balance
-            student['statut'] = self._get_payment_status(balance, student['montant_total'])
+            student['statut'] = calculate_payment_status(balance, student['montant_total'])
         
         return students
     
@@ -132,10 +145,5 @@ class StudentService:
         return self.student_repo.get_classes()
     
     def _get_payment_status(self, balance: float, total: float) -> str:
-        """Détermine le statut de paiement"""
-        if balance <= 0:
-            return "Soldé"
-        elif balance < total:
-            return "Partiellement payé"
-        else:
-            return "Non payé"
+        """Détermine le statut de paiement."""
+        return calculate_payment_status(balance, total)

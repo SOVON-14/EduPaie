@@ -1,5 +1,6 @@
 from repositories.student_repository import StudentRepository
 from repositories.payment_repository import PaymentRepository
+from config import calculate_payment_status
 from typing import Dict, Any, List
 
 class DashboardService:
@@ -40,9 +41,10 @@ class DashboardService:
             total_paye = self.payment_repo.get_total_by_student(student['id'])
             solde = student['montant_total'] - total_paye
             
-            if solde <= 0:
+            statut = calculate_payment_status(solde, student['montant_total'])
+            if statut == "Soldé":
                 nombre_eleves_soldes += 1
-            elif solde < student['montant_total']:
+            elif statut == "Partiellement payé":
                 nombre_eleves_partiellement_payes += 1
             else:
                 nombre_eleves_non_payes += 1
@@ -79,12 +81,7 @@ class DashboardService:
             solde = student['montant_total'] - total_paye
             
             # Déterminer le statut
-            if solde <= 0:
-                current_statut = "Soldé"
-            elif solde < student['montant_total']:
-                current_statut = "Partiellement payé"
-            else:
-                current_statut = "Non payé"
+            current_statut = calculate_payment_status(solde, student['montant_total'])
             
             # Filtrer par statut
             if current_statut == statut:
@@ -120,9 +117,10 @@ class DashboardService:
                 total_encaisse += total_paye
                 solde = student['montant_total'] - total_paye
                 
-                if solde <= 0:
+                statut = calculate_payment_status(solde, student['montant_total'])
+                if statut == "Soldé":
                     nombre_soldes += 1
-                elif solde < student['montant_total']:
+                elif statut == "Partiellement payé":
                     nombre_partiellement_payes += 1
                 else:
                     nombre_non_payes += 1
