@@ -1,19 +1,18 @@
 from repositories.payment_repository import PaymentRepository
 from repositories.student_repository import StudentRepository
 from typing import Optional, Dict, Any
-from datetime import datetime
 from pathlib import Path
 import os
 import subprocess
 import platform
-from reportlab.lib.pagesizes import letter, A4
+from xml.sax.saxutils import escape
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from config import format_montant
-from config import format_montant, calculate_payment_status
+from config import calculate_payment_status, format_montant
 
 class ReceiptService:
     """Service pour la gestion des reçus de paiement et génération PDF"""
@@ -141,90 +140,199 @@ class ReceiptService:
             bottomMargin=2*cm
         )
         
-        # Styles
+        ink = colors.HexColor("#173B36")
+        accent = colors.HexColor("#287A5D")
+        muted = colors.HexColor("#63736F")
+        border = colors.HexColor("#D9E5DF")
+        pale = colors.HexColor("#F1F6F3")
         styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=18,
-            textColor=colors.darkblue,
-            alignment=TA_CENTER,
-            spaceAfter=20
+        brand_style = ParagraphStyle(
+            "ReceiptBrand", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=17, leading=20, textColor=colors.white,
         )
-        header_style = ParagraphStyle(
-            'CustomHeader',
-            parent=styles['Heading2'],
-            fontSize=14,
-            textColor=colors.black,
-            alignment=TA_CENTER,
-            spaceAfter=10
+        brand_detail_style = ParagraphStyle(
+            "ReceiptBrandDetail", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=8, leading=11, textColor=colors.HexColor("#D8E8E0"),
         )
-        normal_style = styles['Normal']
-        normal_style.fontSize = 11
-        
-        # Contenu du document
+        receipt_title_style = ParagraphStyle(
+            "ReceiptTitle", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=13, leading=16, alignment=TA_RIGHT, textColor=colors.white,
+        )
+        section_style = ParagraphStyle(
+            "ReceiptSection", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=9, leading=12, textColor=ink, spaceBefore=5, spaceAfter=7,
+        )
+        label_style = ParagraphStyle(
+            "ReceiptLabel", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=8, leading=11, textColor=muted,
+        )
+        value_style = ParagraphStyle(
+            "ReceiptValue", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=10, leading=14, textColor=ink,
+        )
+        meta_style = ParagraphStyle(
+            "ReceiptMeta", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=9, leading=13, textColor=muted,
+        )
+        amount_label_style = ParagraphStyle(
+            "ReceiptAmountLabel", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=8, leading=11, textColor=accent,
+        )
+        amount_style = ParagraphStyle(
+            "ReceiptAmount", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=20, leading=24, alignment=TA_RIGHT, textColor=ink,
+        )
+        thanks_style = ParagraphStyle(
+            "ReceiptThanks", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=10, leading=14, alignment=TA_CENTER, textColor=ink,
+        )
+        note_style = ParagraphStyle(
+            "ReceiptNote", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=8, leading=11, alignment=TA_CENTER, textColor=muted,
+        )
+
         story = []
-        
-        # Titre
-        story.append(Paragraph("REÇU DE PAIEMENT", title_style))
-        story.append(Spacer(1, 0.5*cm))
-        
-        # Numéro de reçu et date
-        story.append(Paragraph(f"<b>Numéro de reçu :</b> {receipt['numero_recu']}", normal_style))
-        story.append(Paragraph(f"<b>Date :</b> {receipt['date_paiement']}", normal_style))
-        story.append(Spacer(1, 1*cm))
-        
-        # Informations de l'élève
-        story.append(Paragraph("INFORMATIONS DE L'ÉLÈVE", header_style))
-        
-        student_data = [
-            ['Nom :', receipt['eleve']['nom']],
-            ['Prénom :', receipt['eleve']['prenom']],
-            ['Classe :', receipt['eleve']['classe']],
-            ['Année scolaire :', receipt['eleve']['annee_scolaire']]
+        brand_table = Table(
+            [[
+                Paragraph("EDUPAIE<br/><font size='8'>GESTION SCOLAIRE</font>", brand_style),
+                Paragraph("REÇU DE<br/>PAIEMENT", receipt_title_style),
+            ]],
+            colWidths=[9.5*cm, 7.5*cm],
+            rowHeights=[2.2*cm],
+        )
+        brand_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), ink),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (0, 0), 14),
+            ("RIGHTPADDING", (1, 0), (1, 0), 14),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        story.extend([brand_table, Spacer(1, 0.45*cm)])
+
+        receipt_meta = Table(
+            [[
+                Paragraph(
+                    f"<b>N° DE REÇU</b><br/>{escape(str(receipt['numero_recu']))}",
+                    meta_style,
+                ),
+                Paragraph(
+                    f"<b>DATE DU PAIEMENT</b><br/>{escape(str(receipt['date_paiement']))}",
+                    meta_style,
+                ),
+            ]],
+            colWidths=[9.5*cm, 7.5*cm],
+        )
+        receipt_meta.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), pale),
+            ("BOX", (0, 0), (-1, -1), 0.6, border),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ]))
+        story.extend([receipt_meta, Spacer(1, 0.55*cm)])
+
+        amount_box = Table(
+            [[
+                Paragraph("MONTANT REÇU", amount_label_style),
+                Paragraph(escape(format_montant(receipt["montant_paye"])), amount_style),
+            ]],
+            colWidths=[8*cm, 9*cm],
+        )
+        amount_box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EAF4EE")),
+            ("BOX", (0, 0), (-1, -1), 0.6, border),
+            ("LINEBEFORE", (0, 0), (0, -1), 3, accent),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 12),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ]))
+        story.extend([amount_box, Spacer(1, 0.55*cm)])
+
+        story.append(Paragraph("INFORMATIONS DE L'ÉLÈVE", section_style))
+        student = receipt["eleve"]
+        student_rows = [
+            [
+                Paragraph("NOM", label_style),
+                Paragraph(escape(str(student["nom"])), value_style),
+                Paragraph("PRÉNOM", label_style),
+                Paragraph(escape(str(student["prenom"])), value_style),
+            ],
+            [
+                Paragraph("CLASSE", label_style),
+                Paragraph(escape(str(student["classe"])), value_style),
+                Paragraph("ANNÉE SCOLAIRE", label_style),
+                Paragraph(escape(str(student["annee_scolaire"])), value_style),
+            ],
         ]
-        
-        student_table = Table(student_data, colWidths=[4*cm, 6*cm])
+        student_table = Table(
+            student_rows,
+            colWidths=[2.4*cm, 5.6*cm, 3.0*cm, 6.0*cm],
+        )
         student_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey)
+            ("BACKGROUND", (0, 0), (0, -1), pale),
+            ("BACKGROUND", (2, 0), (2, -1), pale),
+            ("BOX", (0, 0), (-1, -1), 0.6, border),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, border),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
         ]))
-        story.append(student_table)
-        story.append(Spacer(1, 1*cm))
-        
-        # Détails du paiement
-        story.append(Paragraph("DÉTAILS DU PAIEMENT", header_style))
-        
-        payment_data = [
-            ['Montant payé :', format_montant(receipt['montant_paye'])],
-            ['Mode de paiement :', self._format_payment_mode(receipt['mode_paiement'])],
-            ['Montant total dû :', format_montant(receipt['montant_total'])],
-            ['Solde restant :', format_montant(receipt['solde_apres_paiement'])],
-            ['Statut :', receipt['statut']]
+        story.extend([student_table, Spacer(1, 0.5*cm)])
+
+        story.append(Paragraph("DÉTAILS DU RÈGLEMENT", section_style))
+        status_style = ParagraphStyle(
+            "ReceiptStatus", parent=value_style, fontName="Helvetica-Bold",
+            textColor=self._get_status_color(receipt["statut"]),
+        )
+        payment_rows = [
+            ("MODE DE PAIEMENT", self._format_payment_mode(receipt["mode_paiement"])),
+            ("MONTANT TOTAL DÛ", format_montant(receipt["montant_total"])),
+            ("SOLDE APRÈS PAIEMENT", format_montant(receipt["solde_apres_paiement"])),
+            ("STATUT", receipt["statut"]),
         ]
-        
-        payment_table = Table(payment_data, colWidths=[4*cm, 6*cm])
+        payment_table = Table(
+            [[Paragraph(escape(label), label_style),
+              Paragraph(escape(str(value)), status_style if label == "STATUT" else value_style)]
+             for label, value in payment_rows],
+            colWidths=[8.5*cm, 8.5*cm],
+        )
         payment_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            ('TEXTCOLOR', (1, 4), (1, 4), self._get_status_color(receipt['statut'])),
-            ('FONTNAME', (1, 4), (1, 4), 'Helvetica-Bold')
+            ("BOX", (0, 0), (-1, -1), 0.6, border),
+            ("LINEBELOW", (0, 0), (-1, -2), 0.4, border),
+            ("BACKGROUND", (0, 3), (-1, 3), pale),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ]))
-        story.append(payment_table)
-        story.append(Spacer(1, 2*cm))
-        
-        # Footer
-        story.append(Paragraph("Merci pour votre paiement.", normal_style))
-        story.append(Paragraph("Ce document sert de preuve de paiement.", normal_style))
-        
-        # Générer le PDF
-        doc.build(story)
+        story.extend([
+            payment_table,
+            Spacer(1, 0.75*cm),
+            Paragraph("Merci pour votre paiement.", thanks_style),
+            Spacer(1, 0.1*cm),
+            Paragraph("Conservez ce reçu comme justificatif de règlement.", note_style),
+        ])
+
+        def draw_footer(canvas, document):
+            canvas.saveState()
+            canvas.setStrokeColor(border)
+            canvas.setLineWidth(0.6)
+            canvas.line(document.leftMargin, 1.55*cm, A4[0] - document.rightMargin, 1.55*cm)
+            canvas.setFont("Helvetica", 8)
+            canvas.setFillColor(muted)
+            canvas.drawString(document.leftMargin, 1.15*cm, "EduPaie | Reçu de paiement")
+            canvas.drawRightString(A4[0] - document.rightMargin, 1.15*cm, "Document généré par EduPaie")
+            canvas.restoreState()
+
+        doc.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)
         
         return output_path
     
