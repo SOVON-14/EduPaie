@@ -1,12 +1,9 @@
 from repositories.payment_repository import PaymentRepository
 from repositories.student_repository import StudentRepository
-from config import calculate_payment_status
+from config import format_montant, calculate_payment_status
 from typing import List, Optional, Dict, Any
-import logging
 import uuid
 from datetime import datetime
-
-logger = logging.getLogger(__name__)
 
 class PaymentService:
     """Service pour la gestion des paiements avec validation du solde"""
@@ -30,10 +27,10 @@ class PaymentService:
         Raises:
             ValueError: Si le montant est invalide ou dépasse le solde restant
         """
-        # Validation du montant
-        # Correction IMP-04 de l'audit : montants entiers (le FCFA n'a pas
-        # de sous-unité), stockés comme tels en base.
+        # Conversion en entier (FCFA n'a pas de sous-unité)
         montant = int(round(montant))
+        
+        # Validation du montant
         if montant <= 0:
             raise ValueError("Le montant doit être positif")
         
@@ -53,13 +50,9 @@ class PaymentService:
         
         # Validation : le paiement ne doit pas faire passer le solde en dessous de 0
         if montant > solde_restant:
-            logger.warning(
-                "Paiement refusé pour l'élève %s : montant=%s, solde_restant=%s",
-                student_id, montant, solde_restant,
-            )
             raise ValueError(
-                f"Le montant ({montant}) dépasse le solde restant ({solde_restant}). "
-                f"Solde après paiement: {solde_restant - montant}"
+                f"Le montant ({format_montant(montant)}) dépasse le solde restant ({format_montant(solde_restant)}). "
+                f"Solde après paiement: {format_montant(solde_restant - montant)}"
             )
         
         # Générer un numéro de reçu unique
@@ -167,7 +160,3 @@ class PaymentService:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         unique_id = str(uuid.uuid4())[:8].upper()
         return f"REC-{timestamp}-{unique_id}"
-    
-    def _get_payment_status(self, balance: float, total: float) -> str:
-        """Détermine le statut de paiement."""
-        return calculate_payment_status(balance, total)
