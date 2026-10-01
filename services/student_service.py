@@ -1,5 +1,6 @@
 from repositories.student_repository import StudentRepository
 from repositories.payment_repository import PaymentRepository
+from config import format_montant
 from typing import List, Optional, Dict, Any
 import re
 
@@ -10,15 +11,24 @@ class StudentService:
         self.student_repo = StudentRepository()
         self.payment_repo = PaymentRepository()
     
-    def create_student(self, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> int:
-        """Crée un nouvel élève"""
+    def _valider_donnees_eleve(self, annee_scolaire: str, montant_total: float) -> None:
+        """Valide les données communes à la création et à la modification.
+
+        Correction IMP-09 de l'audit : la validation (notamment du format de
+        l'année scolaire) n'était appliquée qu'à la création, pas à la
+        modification.
+        """
         if montant_total <= 0:
             raise ValueError("Le montant total doit être positif")
-        
+
         # Validation du format de l'année scolaire
         if not re.match(r'^\d{4}-\d{4}$', annee_scolaire):
             raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
-        
+
+    def create_student(self, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> int:
+        """Crée un nouvel élève"""
+        self._valider_donnees_eleve(annee_scolaire, montant_total)
+
         return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
@@ -66,8 +76,18 @@ class StudentService:
     
     def update_student(self, student_id: int, nom: str, prenom: str, classe: str, annee_scolaire: str, montant_total: float) -> bool:
         """Met à jour un élève"""
-        if montant_total <= 0:
-            raise ValueError("Le montant total doit être positif")
+        self._valider_donnees_eleve(annee_scolaire, montant_total)
+
+        # Correction IMP-10 de l'audit : refuser un nouveau montant total
+        # inférieur au montant déjà payé (le solde deviendrait négatif).
+        total_paye = self.payment_repo.get_total_by_student(student_id)
+        if montant_total < total_paye:
+            raise ValueError(
+                f"Le montant total ({format_montant(montant_total)}) est inférieur "
+                f"au montant déjà payé ({format_montant(total_paye)}) : "
+                "le solde deviendrait négatif."
+            )
+
         return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
     
     def delete_student(self, student_id: int) -> bool:

@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                                      QTableWidget, QTableWidgetItem, QPushButton, 
-                                     QHeaderView, QMessageBox, QTabWidget)
+                                     QHeaderView, QMessageBox, QTabWidget, QWidget)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from ui.payment_dialog import PaymentDialog
@@ -71,6 +71,8 @@ class StudentDetailDialog(QDialog):
         ])
         self.payments_table.horizontalHeader().setStretchLastSection(True)
         self.payments_table.setSelectionBehavior(QTableWidget.SelectRows)
+        # Correction IMP-02 de l'audit : cellules non éditables
+        self.payments_table.setEditTriggers(QTableWidget.NoEditTriggers)
         layout.addWidget(self.payments_table)
         
         # Boutons pour les reçus

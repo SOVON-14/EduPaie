@@ -87,6 +87,7 @@ class MainWindow(QMainWindow):
         self.stats_table.setColumnCount(2)
         self.stats_table.setHorizontalHeaderLabels(["Métrique", "Valeur"])
         self.stats_table.horizontalHeader().setStretchLastSection(True)
+        self.stats_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.stats_table.setMaximumHeight(200)
         layout.addWidget(self.stats_table)
         
@@ -99,6 +100,7 @@ class MainWindow(QMainWindow):
         self.class_table.setColumnCount(5)
         self.class_table.setHorizontalHeaderLabels(["Classe", "Élèves", "Encaissé", "Restant", "Soldés"])
         self.class_table.horizontalHeader().setStretchLastSection(True)
+        self.class_table.setEditTriggers(QTableWidget.NoEditTriggers)
         layout.addWidget(self.class_table)
         
         return tab
@@ -142,6 +144,9 @@ class MainWindow(QMainWindow):
         ])
         self.students_table.horizontalHeader().setStretchLastSection(True)
         self.students_table.setSelectionBehavior(QTableWidget.SelectRows)
+        # Correction IMP-02 de l'audit : les cellules ne doivent pas être
+        # éditables (édition sans effet sur la base, source de confusion).
+        self.students_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.students_table.doubleClicked.connect(self.show_student_detail)
         layout.addWidget(self.students_table)
         

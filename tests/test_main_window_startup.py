@@ -18,10 +18,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QAbstractItemView
 
 import database.database as db
 from ui.main_window import MainWindow
+from ui.student_detail import StudentDetailDialog
 
 
 class MainWindowStartupTestCase(unittest.TestCase):
@@ -78,6 +79,36 @@ class MainWindowStartupTestCase(unittest.TestCase):
         self.window.refresh_data()
         expected = len(self.window.student_service.get_all_students())
         self.assertEqual(self._row_count(), expected)
+
+    # ------------------------------------------------------------------
+    # IMP-02 : les tableaux ne sont pas éditables
+    # ------------------------------------------------------------------
+
+    def test_main_window_tables_not_editable(self):
+        """IMP-02 : aucune cellule des 3 tableaux principaux n'est éditable."""
+        no_edit = QAbstractItemView.NoEditTriggers
+        self.assertEqual(self.window.students_table.editTriggers(), no_edit)
+        self.assertEqual(self.window.stats_table.editTriggers(), no_edit)
+        self.assertEqual(self.window.class_table.editTriggers(), no_edit)
+
+    def test_payments_table_not_editable(self):
+        """IMP-02 : la table des paiements du détail élève n'est pas éditable."""
+        students = self.window.student_service.get_all_students()
+        self.assertTrue(students, "la base doit contenir des élèves")
+        dialog = StudentDetailDialog(
+            students[0]["id"],
+            self.window.student_service,
+            self.window.payment_service,
+            self.window.receipt_service,
+            None,
+        )
+        try:
+            self.assertEqual(
+                dialog.payments_table.editTriggers(),
+                QAbstractItemView.NoEditTriggers,
+            )
+        finally:
+            dialog.close()
 
 
 if __name__ == "__main__":
