@@ -104,6 +104,16 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 Le fichier `dist/EduPaie-Setup.exe` installe l'application dans le profil utilisateur, crée un raccourci et propose de lancer EduPaie à la fin. La base et les reçus sont conservés dans `%LOCALAPPDATA%\EduPaie`, séparément des fichiers de l'application.
 
+## Documentation technique
+
+Pour régénérer le document Word éditable et son PDF avec des captures synthétiques de l'application :
+
+```powershell
+.\.venv\Scripts\python.exe generate_architecture_document.py
+```
+
+Les fichiers sont créés à la racine du projet : `Documentation_Technique_EduPaie.docx` et `Documentation_Technique_EduPaie.pdf`.
+
 ## Structure du projet
 
 - `main.py` : point d'entrée
