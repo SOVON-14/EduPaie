@@ -1,10 +1,33 @@
 import contextlib
 import sqlite3
 import os
+import shutil
+import sys
 from pathlib import Path
 
-# Chemin vers la base de données
-DB_PATH = Path(__file__).parent.parent / "data" / "edupaie.db"
+PROJECT_ROOT = Path(__file__).parent.parent
+
+
+def get_user_data_dir():
+    """Retourne le dossier de données utilisateur en mode installé ou développement."""
+    if getattr(sys, "frozen", False):
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            local_app_data = str(Path.home() / "AppData" / "Local")
+        return Path(local_app_data) / "EduPaie"
+    return PROJECT_ROOT
+
+
+USER_DATA_DIR = get_user_data_dir()
+if getattr(sys, "frozen", False):
+    DB_PATH = USER_DATA_DIR / "edupaie.db"
+else:
+    DB_PATH = PROJECT_ROOT / "data" / "edupaie.db"
+
+
+def _get_bundled_database_path():
+    bundle_root = Path(getattr(sys, "_MEIPASS", PROJECT_ROOT))
+    return bundle_root / "data" / "edupaie.db"
 
 # Version du schéma, suivie via PRAGMA user_version (cf. migrate_schema)
 SCHEMA_VERSION = 1
@@ -151,7 +174,11 @@ def ensure_database_exists():
     """Vérifie si la base de données existe, sinon la crée."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not DB_PATH.exists():
-        init_database()
+        bundled_database = _get_bundled_database_path()
+        if getattr(sys, "frozen", False) and bundled_database.is_file():
+            shutil.copy2(bundled_database, DB_PATH)
+        else:
+            init_database()
     # Applique les migrations de schéma (montants entiers, contraintes SQL)
     migrate_schema()
     # Purge des orphelins hérités d'avant l'activation des clés étrangères

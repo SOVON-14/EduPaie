@@ -13,6 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from config import calculate_payment_status, format_montant
+from database.database import USER_DATA_DIR
 
 class ReceiptService:
     """Service pour la gestion des reçus de paiement et génération PDF"""
@@ -20,8 +21,8 @@ class ReceiptService:
     def __init__(self):
         self.payment_repo = PaymentRepository()
         self.student_repo = StudentRepository()
-        self.receipts_dir = Path(__file__).parent.parent / "receipts"
-        self.receipts_dir.mkdir(exist_ok=True)
+        self.receipts_dir = USER_DATA_DIR / "receipts"
+        self.receipts_dir.mkdir(parents=True, exist_ok=True)
     
     def get_receipt_by_number(self, numero_recu: str) -> Optional[Dict[str, Any]]:
         """

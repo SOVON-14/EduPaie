@@ -93,6 +93,17 @@ cd "C:\Users\USER\Desktop\EduPaie"
 
 Le script crée un dossier `dist/EduPaie` avec une version de l’application prête à lancer.
 
+## Installateur Windows
+
+Installez Inno Setup 6, puis créez l'installateur par utilisateur avec :
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\build_app.ps1 -Installer
+```
+
+Le fichier `dist/EduPaie-Setup.exe` installe l'application dans le profil utilisateur, crée un raccourci et propose de lancer EduPaie à la fin. La base et les reçus sont conservés dans `%LOCALAPPDATA%\EduPaie`, séparément des fichiers de l'application.
+
 ## Structure du projet
 
 - `main.py` : point d'entrée
