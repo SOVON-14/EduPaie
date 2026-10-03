@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from database.database import ensure_database_exists
 from ui.main_window import MainWindow
+from security import prompt_for_app_auth
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,6 +26,11 @@ def main():
         app.setApplicationName("EduPaie")
         app.setApplicationDisplayName("EduPaie")
         app.setStyle('Fusion')
+
+        # Demander l'authentification
+        if not prompt_for_app_auth():
+            logger.info("Authentification refusée ou annulée.")
+            return 0
 
         # Créer et afficher la fenêtre principale
         window = MainWindow()

@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 import subprocess
 import platform
+import logging
 from xml.sax.saxutils import escape
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -14,6 +15,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from config import calculate_payment_status, format_montant
 from database.database import USER_DATA_DIR
+
+logger = logging.getLogger(__name__)
 
 class ReceiptService:
     """Service pour la gestion des reçus de paiement et génération PDF"""
@@ -76,7 +79,7 @@ class ReceiptService:
             'statut': calculate_payment_status(solde_apres, student['montant_total'])
         }
     
-    def get_student_receipts(self, student_id: int) -> list[Dict[str, Any]]:
+    def get_student_receipts(self, student_id: int) -> List[Dict[str, Any]]:
         """
         Récupère tous les reçus d'un élève
         
@@ -130,6 +133,18 @@ class ReceiptService:
         # Définir le chemin de sortie
         if output_path is None:
             output_path = str(self.receipts_dir / f"{numero_recu}.pdf")
+        else:
+            # Valider que le chemin est dans le dossier receipts ou un sous-dossier
+            output_path_obj = Path(output_path).resolve()
+            receipts_dir_resolved = self.receipts_dir.resolve()
+            
+            # Vérifier que le chemin est dans le dossier receipts ou utiliser le chemin par défaut
+            try:
+                output_path_obj.relative_to(receipts_dir_resolved)
+            except ValueError:
+                # Le chemin n'est pas dans receipts, utiliser le chemin par défaut
+                logger.warning(f"Chemin de sortie invalide, utilisation du chemin par défaut: {output_path}")
+                output_path = str(self.receipts_dir / f"{numero_recu}.pdf")
         
         # Créer le document PDF
         doc = SimpleDocTemplate(

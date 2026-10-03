@@ -2,10 +2,24 @@ from database.database import get_connection
 from typing import List, Optional, Dict, Any
 
 class PaymentRepository:
-    """Repository pour la gestion des paiements en base de données"""
+    """Repository pour la gestion des paiements en base de données.
+    
+    Ce repository fournit les opérations CRUD pour les paiements,
+    ainsi que des méthodes de calcul de totaux.
+    """
     
     def create(self, student_id: int, montant: float, mode_paiement: str, numero_recu: str) -> int:
-        """Crée un nouveau paiement et retourne son ID"""
+        """Crée un nouveau paiement et retourne son ID.
+        
+        Args:
+            student_id: ID de l'élève
+            montant: Montant du paiement
+            mode_paiement: Mode de paiement (especes, cheque, virement, mobile_money)
+            numero_recu: Numéro unique du reçu
+            
+        Returns:
+            ID du paiement créé
+        """
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(

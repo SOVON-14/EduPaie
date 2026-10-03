@@ -87,7 +87,7 @@ def is_master_password_configured() -> bool:
 
 def prompt_for_app_auth(parent=None) -> bool:
     """Demande un mot de passe au démarrage. Le premier lancement le configure."""
-    from PySide6.QtWidgets import QInputDialog, QMessageBox
+    from PySide6.QtWidgets import QInputDialog, QMessageBox, QLineEdit
 
     password_file = get_master_password_file()
 
@@ -96,7 +96,7 @@ def prompt_for_app_auth(parent=None) -> bool:
             parent,
             "Sécurisation EduPaie",
             "Choisissez un mot de passe maître pour protéger les données de l'application.",
-            QInputDialog.EchoMode.Password,
+            QLineEdit.EchoMode.Password,
         )
         if not ok or not str(password).strip():
             return False
@@ -108,7 +108,7 @@ def prompt_for_app_auth(parent=None) -> bool:
         parent,
         "Accès EduPaie",
         "Entrez le mot de passe pour ouvrir l'application.",
-        QInputDialog.EchoMode.Password,
+        QLineEdit.EchoMode.Password,
     )
     if not ok:
         return False
