@@ -41,6 +41,7 @@ class PaymentDialog(QDialog):
         self.montant_input.setDecimals(0)
         self.montant_input.setSuffix(FORMAT_MONTANT_SUFFIX)
         self.montant_input.setFocus()
+        # Ne pas ajuster le maximum ici, sera ajusté dynamiquement dans load_student_info
         form_layout.addRow("Montant *:", self.montant_input)
         
         self.mode_input = QComboBox()
@@ -85,6 +86,8 @@ class PaymentDialog(QDialog):
                 f"Solde restant: {format_montant(student['solde'])} / {format_montant(student['montant_total'])}"
             )
             self.max_amount = student['solde']
+            # Ajuster dynamiquement le maximum du spinbox au solde restant
+            self.montant_input.setMaximum(self.max_amount)
         else:
             # Élève introuvable : fermer le dialogue avec un message d'erreur
             from PySide6.QtWidgets import QMessageBox

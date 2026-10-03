@@ -3,6 +3,7 @@ from repositories.payment_repository import PaymentRepository
 from config import format_montant, calculate_payment_status
 from typing import List, Optional, Dict, Any
 import re
+import sqlite3
 
 class StudentService:
     """Service pour la gestion des élèves avec logique métier"""
@@ -21,7 +22,15 @@ class StudentService:
         if not re.match(r'^\d{4}-\d{4}$', annee_scolaire):
             raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
         
-        return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+        try:
+            return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise ValueError(
+                    "Un élève avec ces informations existe déjà "
+                    f"(nom: {nom}, prénom: {prenom}, classe: {classe}, année: {annee_scolaire})"
+                )
+            raise
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
         """Récupère un élève avec ses informations de paiement"""
@@ -76,7 +85,23 @@ class StudentService:
         if not re.match(r'^\d{4}-\d{4}$', annee_scolaire):
             raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
         
-        return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
+        # Vérifier que le nouveau montant total n'est pas inférieur aux paiements déjà effectués
+        total_paye = self.payment_repo.get_total_by_student(student_id)
+        if montant_total < total_paye:
+            raise ValueError(
+                f"Le montant total ({format_montant(montant_total)}) ne peut pas être inférieur "
+                f"au montant déjà payé ({format_montant(total_paye)})"
+            )
+        
+        try:
+            return self.student_repo.update(student_id, nom, prenom, classe, annee_scolaire, montant_total)
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise ValueError(
+                    "Un élève avec ces informations existe déjà "
+                    f"(nom: {nom}, prénom: {prenom}, classe: {classe}, année: {annee_scolaire})"
+                )
+            raise
     
     def delete_student(self, student_id: int) -> bool:
         """Supprime un élève"""
