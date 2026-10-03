@@ -4,6 +4,9 @@ from config import format_montant, calculate_payment_status
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PaymentService:
     """Service pour la gestion des paiements avec validation du solde"""
@@ -66,6 +69,12 @@ class PaymentService:
         
         # Calculer le nouveau solde
         nouveau_solde = solde_restant - montant
+        
+        logger.info(
+            f"Paiement enregistré: ID {payment_id}, élève {student_id}, "
+            f"montant {montant} {format_montant(montant)}, mode {mode_paiement}, "
+            f"solde après {nouveau_solde}"
+        )
         
         return {
             'payment': payment,

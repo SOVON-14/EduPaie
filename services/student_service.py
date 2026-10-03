@@ -4,6 +4,9 @@ from config import format_montant, calculate_payment_status
 from typing import List, Optional, Dict, Any
 import re
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StudentService:
     """Service pour la gestion des élèves avec logique métier.
@@ -41,13 +44,17 @@ class StudentService:
             raise ValueError("L'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)")
         
         try:
-            return self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+            student_id = self.student_repo.create(nom, prenom, classe, annee_scolaire, montant_total)
+            logger.info(f"Élève créé avec succès: ID {student_id}, {nom} {prenom}, {classe}")
+            return student_id
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed" in str(e):
+                logger.warning(f"Tentative de création d'élève en double: {nom} {prenom}, {classe}, {annee_scolaire}")
                 raise ValueError(
                     "Un élève avec ces informations existe déjà "
                     f"(nom: {nom}, prénom: {prenom}, classe: {classe}, année: {annee_scolaire})"
                 )
+            logger.error(f"Erreur lors de la création de l'élève: {e}")
             raise
     
     def get_student(self, student_id: int) -> Optional[Dict[str, Any]]:
