@@ -1,6 +1,7 @@
 from repositories.student_repository import StudentRepository
 from repositories.payment_repository import PaymentRepository
 from services.dashboard_service import DashboardService
+from services.settings_service import SettingsService
 from pathlib import Path
 import logging
 from datetime import datetime
@@ -24,6 +25,7 @@ class ReportService:
         self.student_repo = StudentRepository()
         self.payment_repo = PaymentRepository()
         self.dashboard_service = DashboardService()
+        self.settings_service = SettingsService()
         self.reports_dir = USER_DATA_DIR / "reports"
         self.reports_dir.mkdir(parents=True, exist_ok=True)
     
@@ -62,13 +64,13 @@ class ReportService:
             "ReportTitle", parent=styles["Normal"], fontName="Helvetica-Bold",
             fontSize=18, leading=22, alignment=TA_CENTER, textColor=ink, spaceAfter=0.5*cm
         )
-        subtitle_style = ParagraphStyle(
-            "ReportSubtitle", parent=styles["Normal"], fontName="Helvetica",
-            fontSize=11, leading=14, alignment=TA_CENTER, textColor=muted, spaceAfter=1*cm
-        )
         section_style = ParagraphStyle(
             "ReportSection", parent=styles["Normal"], fontName="Helvetica-Bold",
             fontSize=13, leading=16, textColor=ink, spaceBefore=0.8*cm, spaceAfter=0.4*cm
+        )
+        subtitle_style = ParagraphStyle(
+            "ReportSubtitle", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=11, leading=14, alignment=TA_CENTER, textColor=muted, spaceAfter=1*cm
         )
         label_style = ParagraphStyle(
             "ReportLabel", parent=styles["Normal"], fontName="Helvetica-Bold",
@@ -81,8 +83,10 @@ class ReportService:
         
         story = []
         
-        # Titre
-        story.append(Paragraph("RAPPORT DU TABLEAU DE BORD", title_style))
+        # En-tête avec informations de l'établissement
+        etablissement_nom = self.settings_service.get_etablissement_nom()
+        story.append(Paragraph(etablissement_nom.upper(), title_style))
+        story.append(Paragraph("RAPPORT DU TABLEAU DE BORD", section_style))
         story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
         
         # Statistiques globales
@@ -157,6 +161,9 @@ class ReportService:
         story.append(class_table)
         
         # Footer
+        directeur_nom = self.settings_service.get_directeur_nom()
+        signature_svg = self.settings_service.get_signature_svg_content()
+        
         def draw_footer(canvas, document):
             canvas.saveState()
             canvas.setStrokeColor(border)
@@ -166,6 +173,15 @@ class ReportService:
             canvas.setFillColor(muted)
             canvas.drawString(document.leftMargin, 1.15*cm, "EduPaie | Rapport du tableau de bord")
             canvas.drawRightString(A4[0] - document.rightMargin, 1.15*cm, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+            
+            # Signature du directeur
+            if directeur_nom:
+                canvas.setFont("Helvetica-Bold", 9)
+                canvas.setFillColor(ink)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.5*cm, f"Le Directeur")
+                canvas.setFont("Helvetica", 9)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.3*cm, directeur_nom)
+            
             canvas.restoreState()
         
         doc.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)
@@ -215,6 +231,10 @@ class ReportService:
             "ReportTitle", parent=styles["Normal"], fontName="Helvetica-Bold",
             fontSize=18, leading=22, alignment=TA_CENTER, textColor=ink, spaceAfter=0.5*cm
         )
+        section_style = ParagraphStyle(
+            "ReportSection", parent=styles["Normal"], fontName="Helvetica-Bold",
+            fontSize=13, leading=16, textColor=ink, spaceBefore=0.8*cm, spaceAfter=0.4*cm
+        )
         subtitle_style = ParagraphStyle(
             "ReportSubtitle", parent=styles["Normal"], fontName="Helvetica",
             fontSize=11, leading=14, alignment=TA_CENTER, textColor=muted, spaceAfter=1*cm
@@ -230,9 +250,12 @@ class ReportService:
         
         story = []
         
-        # Titre
+        # En-tête avec informations de l'établissement
+        etablissement_nom = self.settings_service.get_etablissement_nom()
+        story.append(Paragraph(etablissement_nom.upper(), title_style))
+        
         title = f"LISTE DES ÉLÈVES - {classe}" if classe else "LISTE DE TOUS LES ÉLÈVES"
-        story.append(Paragraph(title, title_style))
+        story.append(Paragraph(title, section_style))
         story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')} | {len(students)} élève(s)", subtitle_style))
         
         # Tableau des élèves
@@ -294,6 +317,8 @@ class ReportService:
         story.append(student_table)
         
         # Footer
+        directeur_nom = self.settings_service.get_directeur_nom()
+        
         def draw_footer(canvas, document):
             canvas.saveState()
             canvas.setStrokeColor(border)
@@ -303,6 +328,15 @@ class ReportService:
             canvas.setFillColor(muted)
             canvas.drawString(document.leftMargin, 1.15*cm, "EduPaie | Rapport des élèves")
             canvas.drawRightString(A4[0] - document.rightMargin, 1.15*cm, f"Document généré le {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+            
+            # Signature du directeur
+            if directeur_nom:
+                canvas.setFont("Helvetica-Bold", 9)
+                canvas.setFillColor(ink)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.5*cm, f"Le Directeur")
+                canvas.setFont("Helvetica", 9)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.3*cm, directeur_nom)
+            
             canvas.restoreState()
         
         doc.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)

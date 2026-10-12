@@ -1,5 +1,6 @@
 from repositories.payment_repository import PaymentRepository
 from repositories.student_repository import StudentRepository
+from services.settings_service import SettingsService
 from typing import Optional, Dict, Any
 from pathlib import Path
 import os
@@ -24,6 +25,7 @@ class ReceiptService:
     def __init__(self):
         self.payment_repo = PaymentRepository()
         self.student_repo = StudentRepository()
+        self.settings_service = SettingsService()
         self.receipts_dir = USER_DATA_DIR / "receipts"
         self.receipts_dir.mkdir(parents=True, exist_ok=True)
     
@@ -208,9 +210,14 @@ class ReceiptService:
         )
 
         story = []
+        
+        # Récupérer les informations de l'établissement
+        etablissement_nom = self.settings_service.get_etablissement_nom()
+        directeur_nom = self.settings_service.get_directeur_nom()
+        
         brand_table = Table(
             [[
-                Paragraph("EDUPAIE<br/><font size='8'>GESTION SCOLAIRE</font>", brand_style),
+                Paragraph(f"{etablissement_nom.upper()}<br/><font size='8'>GESTION SCOLAIRE</font>", brand_style),
                 Paragraph("REÇU DE<br/>PAIEMENT", receipt_title_style),
             ]],
             colWidths=[9.5*cm, 7.5*cm],
@@ -346,6 +353,15 @@ class ReceiptService:
             canvas.setFillColor(muted)
             canvas.drawString(document.leftMargin, 1.15*cm, "EduPaie | Reçu de paiement")
             canvas.drawRightString(A4[0] - document.rightMargin, 1.15*cm, "Document généré par EduPaie")
+            
+            # Signature du directeur
+            if directeur_nom:
+                canvas.setFont("Helvetica-Bold", 9)
+                canvas.setFillColor(ink)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.5*cm, f"Le Directeur")
+                canvas.setFont("Helvetica", 9)
+                canvas.drawString(A4[0] - document.rightMargin - 5*cm, 2.3*cm, directeur_nom)
+            
             canvas.restoreState()
 
         doc.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)

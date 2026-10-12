@@ -30,7 +30,7 @@ def _get_bundled_database_path():
     return bundle_root / "data" / "edupaie.db"
 
 # Version du schéma, suivie via PRAGMA user_version (cf. migrate_schema)
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 @contextlib.contextmanager
 def get_connection():
@@ -111,6 +111,8 @@ def migrate_schema():
         try:
             if version < 1:
                 _migrate_v1(conn)
+            if version < 2:
+                _migrate_v2(conn)
         except sqlite3.IntegrityError as e:
             raise ValueError(
                 "Migration impossible : la base contient des données "
@@ -168,6 +170,23 @@ def _migrate_v1(conn):
         COMMIT;
     """)
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+def _migrate_v2(conn):
+    """v2 : ajout de la table settings pour les paramètres de l'établissement."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT,
+            date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        INSERT OR IGNORE INTO settings (key, value) VALUES
+            ('etablissement_nom', 'Établissement Scolaire'),
+            ('directeur_nom', 'Directeur'),
+            ('signature_path', '');
+    """)
     conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 def ensure_database_exists():

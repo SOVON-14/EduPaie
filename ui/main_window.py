@@ -9,10 +9,12 @@ from services.dashboard_service import DashboardService
 from services.receipt_service import ReceiptService
 from services.import_service import ImportService
 from services.report_service import ReportService
+from services.settings_service import SettingsService
 from config import format_montant
 from ui.student_dialog import StudentDialog
 from ui.payment_dialog import PaymentDialog
 from ui.student_detail import StudentDetailDialog
+from ui.settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
     """Fenêtre principale de l'application EduPaie"""
@@ -30,6 +32,7 @@ class MainWindow(QMainWindow):
         self.receipt_service = ReceiptService()
         self.import_service = ImportService()
         self.report_service = ReportService()
+        self.settings_service = SettingsService()
         
         # Initialiser l'interface
         self.init_ui()
@@ -83,6 +86,10 @@ class MainWindow(QMainWindow):
         self.export_pdf_btn = QPushButton("Exporter rapport PDF")
         self.export_pdf_btn.clicked.connect(self.export_report_pdf)
         button_layout.addWidget(self.export_pdf_btn)
+        
+        self.settings_btn = QPushButton("Paramètres")
+        self.settings_btn.clicked.connect(self.open_settings)
+        button_layout.addWidget(self.settings_btn)
         
         main_layout.addLayout(button_layout)
     
@@ -514,3 +521,9 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 QMessageBox.critical(self, "Erreur d'export", f"Erreur lors de l'export: {str(e)}")
+    
+    def open_settings(self):
+        """Ouvre la boîte de dialogue des paramètres"""
+        dialog = SettingsDialog(self)
+        if dialog.exec():
+            self.refresh_data()
