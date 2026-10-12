@@ -1,15 +1,20 @@
 # EduPaie
 
+[![Télécharger EduPaie](https://img.shields.io/badge/Télécharger-EduPaie-blue?style=for-the-badge&logo=windows)](dist/EduPaie-Setup.exe)
+
 Application Python de gestion des frais de scolarité pour un établissement scolaire.
 
-## Vue d'ensemble
+## 📋 Vue d'ensemble
 
 EduPaie permet de :
-- gérer les élèves,
-- enregistrer les paiements,
-- suivre le solde restant,
-- générer des reçus PDF,
-- consulter le tableau de bord global et par classe.
+- ✅ Gérer les élèves (ajout, modification, suppression)
+- ✅ Enregistrer les paiements avec génération automatique de reçus
+- ✅ Suivre le solde restant et le statut de paiement
+- ✅ Générer des reçus PDF personnalisés
+- ✅ Consulter le tableau de bord global et par classe
+- ✅ **Importer des élèves depuis un fichier Excel**
+- ✅ **Exporter des rapports PDF (tableau de bord, liste élèves, par classe)**
+- ✅ **Configurer l'établissement (nom, directeur, signature avec export SVG)**
 
 ## Prérequis
 
@@ -114,19 +119,97 @@ Pour régénérer le document Word éditable et son PDF avec des captures synth�
 
 Les fichiers sont créés à la racine du projet : `Documentation_Technique_EduPaie.docx` et `Documentation_Technique_EduPaie.pdf`.
 
-## Structure du projet
+## 📁 Structure du projet
 
-- `main.py` : point d'entrée
-- `config.py` : configuration centrale de l'application
-- `database/` : schéma SQLite et gestion de la base
-- `repositories/` : accès à la base de données
-- `services/` : logique métier
-- `ui/` : interface PySide6
-- `tests/` : tests de non-régression
-- `receipts/` : fichiers PDF générés
+```
+EduPaie/
+├── main.py                      # Point d'entrée de l'application
+├── config.py                    # Configuration centrale (devise, formatage)
+├── app_settings.py              # Gestion du fichier de configuration INI
+├── security.py                  # Gestion de l'authentification
+├── requirements.txt             # Dépendances Python
+├── pyproject.toml              # Configuration du projet
+│
+├── database/                    # Gestion de la base de données
+│   ├── database.py             # Connexion, migration, initialisation
+│   └── schema.sql              # Schéma SQLite (v2 avec table settings)
+│
+├── repositories/                # Accès aux données (pattern Repository)
+│   ├── student_repository.py   # Opérations CRUD sur les élèves
+│   ├── payment_repository.py   # Opérations CRUD sur les paiements
+│   └── settings_repository.py  # Gestion des paramètres établissement
+│
+├── services/                    # Logique métier
+│   ├── student_service.py      # Service de gestion des élèves
+│   ├── payment_service.py      # Service de gestion des paiements
+│   ├── dashboard_service.py    # Service de statistiques et tableau de bord
+│   ├── receipt_service.py      # Génération des reçus PDF
+│   ├── import_service.py       # Import d'élèves depuis Excel
+│   ├── report_service.py       # Génération de rapports PDF
+│   ├── settings_service.py     # Gestion des paramètres établissement
+│   └── backup_service.py       # Sauvegarde et restauration de la base
+│
+├── ui/                          # Interface utilisateur (PySide6)
+│   ├── main_window.py          # Fenêtre principale
+│   ├── student_dialog.py       # Dialogue d'ajout/modification d'élève
+│   ├── payment_dialog.py       # Dialogue d'enregistrement de paiement
+│   ├── student_detail.py       # Fenêtre de détails d'un élève
+│   └── settings_dialog.py      # Dialogue de paramètres établissement
+│
+├── tests/                       # Tests unitaires
+│
+├── data/                        # Données
+│   ├── edupaie.db              # Base de données SQLite
+│   └── seed.py                 # Script de peuplement de la base
+│
+├── resources/                   # Ressources (images, icônes, etc.)
+│
+├── scripts/                     # Scripts utilitaires
+│   ├── setup_env.ps1           # Configuration de l'environnement
+│   ├── run_app.ps1             # Lancement de l'application
+│   └── build_app.ps1           # Build de l'exécutable
+│
+├── dist/                        # Distribution (après build)
+│   └── EduPaie/                # Application empaquetée
+│
+└── docs/                        # Documentation
+    ├── Documentation_Technique_EduPaie.docx
+    ├── Documentation_Technique_EduPaie.pdf
+    ├── Guide_Installation_EduPaie.docx
+    └── Manuel_Utilisateur_EduPaie.docx
+```
 
-## Notes
+### Dossiers générés à l'exécution
+
+- `receipts/` : Reçus PDF générés
+- `reports/` : Rapports PDF exportés
+- `signatures/` : Images de signature uploadées
+
+## 📝 Notes
 
 - La base SQLite est créée automatiquement si elle est absente.
 - La devise par défaut est le FCFA ; elle est centralisée dans `config.py`.
 - Les tests ne doivent pas modifier le cœur du projet ; ils valident le comportement métier et UI.
+- Les paramètres de l'établissement (nom, directeur, signature) sont stockés dans la table `settings` de la base de données.
+- Les signatures sont converties automatiquement en SVG avec encodage base64 pour l'utilisation dans les PDF.
+- La migration de schéma (v1 → v2) est automatique pour les bases existantes.
+
+## 🔧 Fonctionnalités récentes
+
+### Import Excel
+- Import massif d'élèves depuis un fichier Excel (.xlsx, .xls)
+- Format attendu : Nom, Prénom, Classe, Année scolaire, Montant total
+- Validation des données et rapport d'erreurs détaillé
+
+### Export PDF
+- Rapport du tableau de bord (statistiques globales + par classe)
+- Liste de tous les élèves avec statuts de paiement
+- Liste filtrée par classe
+- Personnalisation avec nom de l'établissement et signature du directeur
+
+### Paramètres de l'établissement
+- Configuration du nom de l'établissement
+- Configuration du nom du directeur
+- Upload de signature (PNG, JPG, GIF, BMP)
+- Export de signature en format SVG
+- Intégration automatique dans tous les documents PDF générés
