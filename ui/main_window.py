@@ -1,12 +1,14 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                      QPushButton, QLabel, QTableWidget, QTableWidgetItem,
-                                     QTabWidget, QLineEdit, QComboBox, QMessageBox, QHeaderView)
+                                     QTabWidget, QLineEdit, QComboBox, QMessageBox, QHeaderView, QFileDialog)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from services.student_service import StudentService
 from services.payment_service import PaymentService
 from services.dashboard_service import DashboardService
 from services.receipt_service import ReceiptService
+from services.import_service import ImportService
+from services.report_service import ReportService
 from config import format_montant
 from ui.student_dialog import StudentDialog
 from ui.payment_dialog import PaymentDialog
@@ -26,6 +28,8 @@ class MainWindow(QMainWindow):
         self.payment_service = PaymentService()
         self.dashboard_service = DashboardService()
         self.receipt_service = ReceiptService()
+        self.import_service = ImportService()
+        self.report_service = ReportService()
         
         # Initialiser l'interface
         self.init_ui()
@@ -71,6 +75,14 @@ class MainWindow(QMainWindow):
         self.refresh_btn = QPushButton("Actualiser")
         self.refresh_btn.clicked.connect(self.refresh_data)
         button_layout.addWidget(self.refresh_btn)
+        
+        self.import_excel_btn = QPushButton("Importer Excel")
+        self.import_excel_btn.clicked.connect(self.import_from_excel)
+        button_layout.addWidget(self.import_excel_btn)
+        
+        self.export_pdf_btn = QPushButton("Exporter rapport PDF")
+        self.export_pdf_btn.clicked.connect(self.export_report_pdf)
+        button_layout.addWidget(self.export_pdf_btn)
         
         main_layout.addLayout(button_layout)
     
@@ -394,3 +406,111 @@ class MainWindow(QMainWindow):
         """Actualise toutes les données"""
         self.load_dashboard_stats()
         self.load_students()
+    
+    def import_from_excel(self):
+        """Importe des élèves depuis un fichier Excel"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Sélectionner un fichier Excel",
+            "",
+            "Fichiers Excel (*.xlsx *.xls)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            imported_count, error_count, errors = self.import_service.import_students_from_excel(file_path)
+            
+            message = f"Import terminé:\n\n"
+            message += f"Élèves importés avec succès: {imported_count}\n"
+            message += f"Erreurs: {error_count}\n"
+            
+            if errors:
+                message += "\nDétails des erreurs:\n"
+                for error in errors[:10]:  # Afficher max 10 erreurs
+                    message += f"- {error}\n"
+                if len(errors) > 10:
+                    message += f"... et {len(errors) - 10} autres erreurs"
+            
+            if error_count == 0:
+                QMessageBox.information(self, "Import réussi", message)
+            else:
+                QMessageBox.warning(self, "Import avec erreurs", message)
+            
+            self.refresh_data()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur d'import", f"Erreur lors de l'import: {str(e)}")
+    
+    def export_report_pdf(self):
+        """Exporte un rapport PDF"""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QRadioButton, QButtonGroup, QDialogButtonBox, QLabel
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Choisir le type de rapport")
+        dialog.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(dialog)
+        
+        layout.addWidget(QLabel("Quel rapport souhaitez-vous générer ?"))
+        
+        radio_dashboard = QRadioButton("Tableau de bord global")
+        radio_students = QRadioButton("Liste de tous les élèves")
+        radio_class = QRadioButton("Liste par classe")
+        
+        radio_dashboard.setChecked(True)
+        
+        button_group = QButtonGroup()
+        button_group.addButton(radio_dashboard)
+        button_group.addButton(radio_students)
+        button_group.addButton(radio_class)
+        
+        layout.addWidget(radio_dashboard)
+        layout.addWidget(radio_students)
+        layout.addWidget(radio_class)
+        
+        # Sélecteur de classe
+        class_selector = QComboBox()
+        class_selector.addItem("Toutes les classes")
+        classes = self.student_service.get_classes()
+        for classe in classes:
+            class_selector.addItem(classe)
+        class_selector.setEnabled(False)
+        layout.addWidget(QLabel("Classe:"))
+        layout.addWidget(class_selector)
+        
+        # Activer le sélecteur de classe seulement si "par classe" est sélectionné
+        def on_radio_changed():
+            class_selector.setEnabled(radio_class.isChecked())
+        
+        button_group.buttonClicked.connect(on_radio_changed)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec() == QDialog.Accepted:
+            try:
+                output_path = None
+                
+                if radio_dashboard.isChecked():
+                    output_path = self.report_service.generate_dashboard_report()
+                elif radio_students.isChecked():
+                    output_path = self.report_service.generate_students_report()
+                elif radio_class.isChecked():
+                    selected_class = class_selector.currentText()
+                    if selected_class == "Toutes les classes":
+                        QMessageBox.warning(self, "Avertissement", "Veuillez sélectionner une classe")
+                        return
+                    output_path = self.report_service.generate_students_report(classe=selected_class)
+                
+                QMessageBox.information(
+                    self,
+                    "Export réussi",
+                    f"Rapport généré avec succès:\n{output_path}"
+                )
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur d'export", f"Erreur lors de l'export: {str(e)}")
